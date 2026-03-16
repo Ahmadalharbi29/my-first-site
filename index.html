@@ -6,7 +6,12 @@
     <title>Professional CV Builder</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; }
+        /* We use CSS Variables so we can change colors easily with JavaScript */
+        :root { 
+            --primary: #2c3e50; 
+            --accent: #3498db; 
+        }
+        
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #eaeff2; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .app-container { display: flex; gap: 30px; max-width: 1200px; width: 100%; }
         
@@ -14,7 +19,7 @@
         .editor { flex: 1; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; }
         .editor h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
         label { font-weight: bold; display: block; margin-top: 15px; color: #555; font-size: 13px; }
-        input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input, textarea, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         
         .button-group { display: flex; gap: 10px; margin-top: 25px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
@@ -35,7 +40,7 @@
         .header-text h1 { margin: 0; color: var(--primary); text-transform: uppercase; font-size: 24pt; }
         .contact-info { color: #666; font-size: 11pt; margin-top: 5px; }
         
-        .section-title { color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; text-transform: uppercase; font-size: 14pt; font-weight: bold; }
+        .section-title { color: var(--accent); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; text-transform: uppercase; font-size: 14pt; font-weight: bold; }
         .content-area { line-height: 1.6; white-space: pre-wrap; margin-top: 10px; font-size: 11pt; }
         .skills-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
         .skill-tag { background: #f0f0f0; padding: 5px 12px; border-radius: 15px; font-size: 10pt; color: var(--primary); border: 1px solid #ddd; }
@@ -44,9 +49,18 @@
 <body>
 
     <div class="app-container">
-        <div class="editor">
+        <div class="editor" role="form">
             <h2>Resume Builder</h2>
             
+            <label for="themeSelect">Choose Accent Color</label>
+            <select id="themeSelect" onchange="changeTheme(this.value)">
+                <option value="#3498db">Default Blue</option>
+                <option value="#2ecc71">Emerald Green</option>
+                <option value="#e67e22">Carrot Orange</option>
+                <option value="#9b59b6">Amethyst Purple</option>
+                <option value="#2c3e50">Midnight Black</option>
+            </select>
+
             <label for="photoIn">Profile Photo</label>
             <input type="file" id="photoIn" accept="image/*" onchange="updatePhoto(this)" title="Upload a profile picture">
 
@@ -112,6 +126,14 @@
                     skillsDiv.appendChild(span);
                 }
             });
+        }
+
+        // Theme Switcher Logic
+        function changeTheme(color) {
+            document.documentElement.style.setProperty('--accent', color);
+            // Also update the border of the photo to match the theme
+            const photo = document.getElementById('photoOut');
+            photo.style.borderColor = color;
         }
 
         // Photo Upload Logic
