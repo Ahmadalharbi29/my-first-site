@@ -1,28 +1,124 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    < meta name="view port" content="width=device-width, initial-scale=1.0">
-    <title>Ahmad's Dev Space</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional CV Builder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-      body {
-          background: #121212;
-          color: #00ff88;
-          font-family: 'Courier New', Courier, monospace;
-          display:    flex;
-          flex-direction: column;
-          align-items: center;
-          justi    fy-content: center;
-          height: 100vh;
-          margin: 0;
-      }
-      h1 { border-bottom: 2px solid #00ff88; padding-bo  ttom: 10px; }
-      .status { color: white; b   ackground: #333; padding: 10   px; border-radius: 5px; }
+        :root { --primary: #2c3e50; --accent: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eaeff2; margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        /* Layout */
+        .app-container { display: flex; gap: 30px; max-width: 1200px; width: 100%; }
+        
+        /* Left Side: Editor */
+        .editor { flex: 1; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); height: fit-content; }
+        .editor h2 { color: var(--primary); margin-top: 0; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; }
+        .btn-pdf { background: #e74c3c; }
+        .btn-word { background: #2b579a; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+
+        /* Right Side: Resume Preview (A4 Paper Style) */
+        .preview-container { flex: 1.2; display: flex; justify-content: center; }
+        #resume-paper { 
+            width: 210mm; 
+            min-height: 297mm; 
+            background: white; 
+            padding: 20mm; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.2); 
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        /* Resume Content Styling */
+        .resume-header { border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
+        .resume-header h1 { margin: 0; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
+        .contact-info { color: #666; font-size: 14px; margin-top: 5px; }
+        .section-title { color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; text-transform: uppercase; font-size: 16px; font-weight: bold; }
+        #aboutOut, #expOut { line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
     </style>
-  </head>
-  <body>
-    <h1>SYSTEM ONLIN E</h1>
-    <p class="sta tus">VS Code + Git + Node.js = Ready</p>
-    <p>Edit this text in VS Code to see the magic.</p>
-  </body>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="editor">
+            <h2>Resume Builder</h2>
+            
+            <label>Full Name</label>
+            <input type="text" id="nameIn" placeholder="e.g. Ahmad Alharbi" oninput="updateCV()">
+            
+            <label>Contact Email</label>
+            <input type="email" id="emailIn" placeholder="e.g. ahmad@example.com" oninput="updateCV()">
+            
+            <label>Professional Summary</label>
+            <textarea id="aboutIn" rows="4" placeholder="Tell us about yourself..." oninput="updateCV()"></textarea>
+            
+            <label>Work Experience</label>
+            <textarea id="expIn" rows="6" placeholder="Job Title - Company (Year)&#10;• Responsibility 1&#10;• Responsibility 2" oninput="updateCV()"></textarea>
+
+            <div class="button-group">
+                <button class="btn-pdf" onclick="downloadPDF()">Download PDF</button>
+                <button class="btn-word" onclick="downloadWord()">Download Word</button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <div id="resume-paper">
+                <div class="resume-header">
+                    <h1 id="nameOut">Your Name</h1>
+                    <div class="contact-info" id="emailOut">Email: email@example.com</div>
+                </div>
+
+                <div class="section-title">Professional Summary</div>
+                <p id="aboutOut">Enter your details in the editor to see your professional summary here...</p>
+
+                <div class="section-title">Work Experience</div>
+                <div id="expOut">Details about your past roles will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update the preview in real-time
+        function updateCV() {
+            document.getElementById('nameOut').innerText = document.getElementById('nameIn').value || "Your Name";
+            document.getElementById('emailOut').innerText = "Email: " + (document.getElementById('emailIn').value || "email@example.com");
+            document.getElementById('aboutOut').innerText = document.getElementById('aboutIn').value || "Enter your summary...";
+            document.getElementById('expOut').innerText = document.getElementById('expIn').value || "Your experience...";
+        }
+
+        // Export to PDF
+        function downloadPDF() {
+            const element = document.getElementById('resume-paper');
+            const options = {
+                margin: 0,
+                filename: 'My_Resume.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(options).from(element).save();
+        }
+
+        // Export to Word (.doc)
+        function downloadWord() {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+            const footer = "</body></html>";
+            const sourceHTML = header + document.getElementById("resume-paper").innerHTML + footer;
+            
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            const fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload);
+            fileDownload.href = source;
+            fileDownload.download = 'My_Resume.doc';
+            fileDownload.click();
+            document.body.removeChild(fileDownload);
+        }
+    </script>
+</body>
 </html>
