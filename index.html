@@ -3,234 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite CV Builder</title>
+    <title>Cloud CV Builder</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; }
-        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #eaeff2; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; }
+        body { font-family: 'Inter', sans-serif; background: #eaeff2; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .app-container { display: flex; gap: 30px; max-width: 1400px; width: 100%; }
         
-        /* Editor Styles */
-        .editor { 
-            flex: 1; background: white; padding: 25px; border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); height: 90vh; overflow-y: auto; 
-            position: sticky; top: 20px; 
-        }
-        .editor h2 { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 0; }
-        label { font-weight: bold; display: block; margin-top: 15px; color: #555; font-size: 13px; }
+        .editor { flex: 1; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); height: 90vh; overflow-y: auto; position: sticky; top: 20px; }
+        .auth-bar { background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #ccc; text-align: center; }
+        
+        label { font-weight: bold; display: block; margin-top: 15px; font-size: 13px; color: #555; }
         input, textarea, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         
-        .dynamic-block { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--accent); position: relative; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; font-weight: bold; }
-        .btn-remove { background: #ff7675; color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; position: absolute; top: 10px; right: 10px; }
-
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
-        button:not(.btn-remove, .btn-add) { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
-        .btn-pdf { background: #e74c3c; } .btn-word { background: #2b579a; } .btn-print { background: #27ae60; grid-column: span 2; }
-
-        /* Preview Container */
+        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-cloud { background: var(--success); grid-column: span 2; margin-bottom: 10px; }
+        .btn-pdf { background: #e74c3c; } .btn-word { background: #2b579a; }
+        
         .preview-container { flex: 1.3; display: flex; flex-direction: column; align-items: center; }
-        #resume-paper { 
-            width: 210mm; min-height: 297mm; background: white; padding: 15mm 20mm; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.2); box-sizing: border-box; color: #333;
-            transition: all 0.3s ease;
-        }
-
-        /* Template 1: Classic (Default) */
-        .classic-layout .resume-header { text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 15px; margin-bottom: 20px; }
-        .classic-layout #photoOut { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 10px; object-fit: cover; display: none; border: 3px solid var(--accent); }
-
-        /* Template 2: Modern (Sidebar) */
-        .modern-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; padding: 0 !important; }
-        .modern-layout .sidebar { background: var(--primary); color: white; padding: 20mm 10mm; }
-        .modern-layout .main-content { padding: 20mm 15mm 20mm 0; }
-        .modern-layout .section-title { color: var(--accent); border-bottom: 1px solid #eee; margin-top: 25px; font-size: 12pt; }
-        .modern-layout .sidebar .section-title { color: white; border-color: rgba(255,255,255,0.2); }
-        .modern-layout #photoOut { width: 100%; border-radius: 12px; margin-bottom: 20px; display: none; }
-
-        /* Common Elements */
-        .section-title { text-transform: uppercase; font-weight: bold; padding-bottom: 5px; }
-        .job-entry h4 { margin: 10px 0 2px 0; color: #444; }
-        .job-meta { font-size: 10pt; color: #777; font-style: italic; }
+        #resume-paper { width: 210mm; min-height: 297mm; background: white; padding: 20mm; box-shadow: 0 0 20px rgba(0,0,0,0.2); box-sizing: border-box; }
+        
+        .section-title { color: var(--accent); border-bottom: 1px solid #eee; margin-top: 20px; text-transform: uppercase; font-weight: bold; }
         .skill-tag { background: #f1f2f6; padding: 4px 10px; border-radius: 4px; font-size: 9pt; border-left: 3px solid var(--accent); margin: 3px; display: inline-block; }
-
-        @media print { .editor { display: none; } #resume-paper { box-shadow: none; margin: 0; } }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="editor">
-        <h2>CV Editor</h2>
-        
-        <label for="layoutSelect">Choose Template</label>
-        <select id="layoutSelect" onchange="changeLayout(this.value)">
-            <option value="classic-layout">Classic (Centered)</option>
-            <option value="modern-layout">Modern (Sidebar)</option>
-        </select>
-
-        <label for="themeSelect">Accent Color</label>
-        <select id="themeSelect" onchange="changeTheme(this.value)">
-            <option value="#3498db">Sky Blue</option>
-            <option value="#2ecc71">Emerald Green</option>
-            <option value="#e67e22">Pumpkin Orange</option>
-            <option value="#2c3e50">Slate Grey</option>
-        </select>
-
-        <label>Photo</label>
-        <input type="file" accept="image/*" onchange="updatePhoto(this)">
-
-        <label>Full Name</label>
-        <input type="text" id="nameIn" oninput="saveAndRefresh()">
-        
-        <label>Contact (Email | Phone | Location)</label>
-        <input type="text" id="contactIn" oninput="saveAndRefresh()">
-
-        <label>Professional Summary</label>
-        <textarea id="summaryIn" rows="3" oninput="saveAndRefresh()"></textarea>
-
-        <div id="experienceFields">
-            <label>Work Experience</label>
+        <div class="auth-bar" id="authStatus">
+            <span>Cloud Sync: <strong>Off</strong></span>
+            <button onclick="login()" style="background:none; color:var(--accent); border:none; padding:0; text-decoration:underline; font-size:12px; margin-left:10px; cursor:pointer;">Login with Google</button>
         </div>
-        <button class="btn-add" onclick="addJob()">+ Add Experience</button>
 
-        <label>Skills (comma separated)</label>
-        <input type="text" id="skillsIn" oninput="saveAndRefresh()">
+        <h2>Cloud CV Editor</h2>
+        
+        <button class="btn-cloud" onclick="saveToCloud()">☁ Save to Cloud Account</button>
+
+        <label for="nameIn">Full Name</label>
+        <input type="text" id="nameIn" oninput="updatePreview()">
+        
+        <label for="contactIn">Contact Info</label>
+        <input type="text" id="contactIn" oninput="updatePreview()">
+
+        <label for="summaryIn">Summary</label>
+        <textarea id="summaryIn" rows="3" oninput="updatePreview()"></textarea>
+
+        <label for="skillsIn">Skills (comma separated)</label>
+        <input type="text" id="skillsIn" oninput="updatePreview()">
 
         <div class="button-group">
             <button class="btn-pdf" onclick="downloadPDF()">Export PDF</button>
             <button class="btn-word" onclick="downloadWord()">Export Word</button>
-            <button class="btn-print" onclick="window.print()">Print</button>
         </div>
     </div>
 
     <div class="preview-container">
-        <div id="resume-paper" class="classic-layout">
-            <div id="layout-wrapper">
-                </div>
+        <div id="resume-paper">
+            <h1 id="nameOut">Your Name</h1>
+            <p id="contactOut">Contact Info</p>
+            <div class="section-title">Profile</div>
+            <p id="summaryOut">Summary text...</p>
+            <div class="section-title">Skills</div>
+            <div id="skillsOut"></div>
         </div>
     </div>
 </div>
 
 <script>
-    let jobs = JSON.parse(localStorage.getItem('cvJobs')) || [];
-    let currentLayout = localStorage.getItem('cvLayout') || 'classic-layout';
-
-    function changeLayout(val) {
-        currentLayout = val;
-        document.getElementById('resume-paper').className = val;
-        localStorage.setItem('cvLayout', val);
-        saveAndRefresh();
+    // --- FIREBASE CONFIG (You will replace this with your own from Firebase Console) ---
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "your-app.firebaseapp.com",
+        projectId: "your-app",
+        storageBucket: "your-app.appspot.com",
+        messagingSenderId: "12345",
+        appId: "1:12345:web:6789"
+    };
+    
+    // Initialize Firebase (Checks if config is valid)
+    if(firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
     }
 
-    function addJob() {
-        jobs.push({ title: '', company: '', desc: '' });
-        renderEditorJobs();
-        saveAndRefresh();
-    }
+    const auth = firebase.auth?.();
+    const db = firebase.firestore?.();
 
-    function removeJob(index) {
-        jobs.splice(index, 1);
-        renderEditorJobs();
-        saveAndRefresh();
-    }
-
-    function updateJobData(index, field, value) {
-        jobs[index][field] = value;
-        saveAndRefresh();
-    }
-
-    function renderEditorJobs() {
-        const container = document.getElementById('experienceFields');
-        container.innerHTML = '<label>Work Experience</label>';
-        jobs.forEach((job, i) => {
-            container.innerHTML += `
-                <div class="dynamic-block">
-                    <button class="btn-remove" onclick="removeJob(${i})">×</button>
-                    <input type="text" placeholder="Role Name" value="${job.title}" oninput="updateJobData(${i}, 'title', this.value)">
-                    <input type="text" placeholder="Company & Dates" value="${job.company}" oninput="updateJobData(${i}, 'company', this.value)">
-                    <textarea placeholder="Key Achievements" oninput="updateJobData(${i}, 'desc', this.value)">${job.desc}</textarea>
-                </div>`;
+    function updatePreview() {
+        document.getElementById('nameOut').innerText = document.getElementById('nameIn').value || "Your Name";
+        document.getElementById('contactOut').innerText = document.getElementById('contactIn').value || "Contact Info";
+        document.getElementById('summaryOut').innerText = document.getElementById('summaryIn').value;
+        
+        const skillsDiv = document.getElementById('skillsOut');
+        skillsDiv.innerHTML = '';
+        document.getElementById('skillsIn').value.split(',').forEach(s => {
+            if(s.trim()) skillsDiv.innerHTML += `<span class="skill-tag">${s.trim()}</span>`;
         });
     }
 
-    function saveAndRefresh() {
+    async function login() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const result = await auth.signInWithPopup(provider);
+            document.getElementById('authStatus').innerHTML = `Logged in as: <strong>${result.user.displayName}</strong>`;
+            loadUserCloudData(result.user.uid);
+        } catch (error) {
+            alert("Login failed: " + error.message);
+        }
+    }
+
+    async function saveToCloud() {
+        const user = auth?.currentUser;
+        if (!user) return alert("Please login first to save to cloud!");
+
         const data = {
             name: document.getElementById('nameIn').value,
             contact: document.getElementById('contactIn').value,
             summary: document.getElementById('summaryIn').value,
             skills: document.getElementById('skillsIn').value,
-            photo: document.getElementById('photoOut').src
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // Save to LocalStorage
-        Object.keys(data).forEach(key => localStorage.setItem('cv' + key, data[key]));
-        localStorage.setItem('cvJobs', JSON.stringify(jobs));
-
-        // Inject Content into Template
-        const wrapper = document.getElementById('layout-wrapper');
-        const photoSrc = data.photo.length > 100 ? data.photo : ''; // Simple check if photo exists
-        
-        const skillsHTML = data.skills.split(',').map(s => s.trim() ? `<span class="skill-tag">${s.trim()}</span>` : '').join('');
-        const jobsHTML = jobs.map(j => `<div class="job-entry"><h4>${j.title}</h4><div class="job-meta">${j.company}</div><div style="font-size:10pt">${j.desc}</div></div>`).join('');
-
-        if (currentLayout === 'classic-layout') {
-            wrapper.innerHTML = `
-                <div class="resume-header">
-                    <img id="photoPreview" src="${photoSrc}" style="display:${photoSrc ? 'block' : 'none'}; width:100px; height:100px; border-radius:50%; margin:0 auto 10px; object-fit:cover; border:3px solid var(--accent);">
-                    <h1>${data.name || 'Your Name'}</h1>
-                    <div class="job-meta">${data.contact || 'contact@example.com'}</div>
-                </div>
-                <div class="section-title">Profile</div><p style="font-size:11pt">${data.summary}</p>
-                <div class="section-title">Experience</div>${jobsHTML}
-                <div class="section-title">Skills</div><div class="skills-container">${skillsHTML}</div>
-            `;
-        } else {
-            wrapper.innerHTML = `
-                <div class="modern-layout">
-                    <div class="sidebar">
-                        <img src="${photoSrc}" style="display:${photoSrc ? 'block' : 'none'}; width:100%; border-radius:10px; margin-bottom:20px; border:2px solid white;">
-                        <div class="section-title">Contact</div><div style="font-size:10pt; margin-bottom:20px">${data.contact}</div>
-                        <div class="section-title">Skills</div><div class="skills-container">${skillsHTML}</div>
-                    </div>
-                    <div class="main-content">
-                        <h1 style="color:var(--primary); text-transform:uppercase; margin:0">${data.name || 'Your Name'}</h1>
-                        <div class="section-title">Summary</div><p style="font-size:11pt">${data.summary}</p>
-                        <div class="section-title">Experience</div>${jobsHTML}
-                    </div>
-                </div>
-            `;
+        try {
+            await db.collection("resumes").doc(user.uid).set(data);
+            alert("Saved to cloud successfully! ☁");
+        } catch (error) {
+            console.error(error);
+            alert("Error saving: Use 'Local Storage' until Firebase is configured.");
         }
     }
 
-    window.onload = () => {
-        document.getElementById('nameIn').value = localStorage.getItem('cvname') || '';
-        document.getElementById('contactIn').value = localStorage.getItem('cvcontact') || '';
-        document.getElementById('summaryIn').value = localStorage.getItem('cvsummary') || '';
-        document.getElementById('skillsIn').value = localStorage.getItem('cvskills') || '';
-        document.getElementById('photoOut').src = localStorage.getItem('cvphoto') || '';
-        document.getElementById('layoutSelect').value = currentLayout;
-        document.getElementById('resume-paper').className = currentLayout;
-        renderEditorJobs();
-        saveAndRefresh();
-    };
-
-    function changeTheme(color) { document.documentElement.style.setProperty('--accent', color); }
-    function updatePhoto(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => { 
-                document.getElementById('photoOut').src = e.target.result;
-                saveAndRefresh();
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-    function downloadPDF() { html2pdf().from(document.getElementById('resume-paper')).set({ margin:0, filename:'CV.pdf', html2canvas:{scale:2}, jsPDF:{unit:'mm',format:'a4'} }).save(); }
-    function downloadWord() { window.location.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(document.getElementById("resume-paper").innerHTML); }
+    function downloadPDF() { html2pdf().from(document.getElementById('resume-paper')).save(); }
 </script>
-
-<img id="photoOut" style="display:none" src="">
-
 </body>
 </html>
